@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RoDexApp</string>
+    <string name="already_have_account">Already have an account? <font color="#305C0E">Login</font></string>
+    <string name="dont_have_account">Don’t have any account? <font color="#305C0E">Register</font></string>
+</resources>
