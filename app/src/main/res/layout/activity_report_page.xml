@@ -75,6 +75,22 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/detailRoadDateTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Inspection date: Unknown"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/detailRoadAddressTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Address: Unknown"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <TextView
                     android:id="@+id/detailLengthTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -91,10 +107,26 @@
                     android:textSize="16sp" />
 
                 <TextView
-                    android:id="@+id/detailSurfaceTypeTextView"
+                    android:id="@+id/detailRoadTypeTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Surface type: Unknown"
+                    android:text="Road type: Unknown"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/detailRoadClassTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Road class: Unknown"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/detailRoadAdditionalTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Additional Information: Unknown"
                     android:textColor="@android:color/black"
                     android:textSize="16sp" />
 
@@ -184,5 +216,6 @@
             android:layout_marginStart="32dp"
             android:background="@drawable/report"
             android:minHeight="48dp" />
+
     </LinearLayout>
 </RelativeLayout>

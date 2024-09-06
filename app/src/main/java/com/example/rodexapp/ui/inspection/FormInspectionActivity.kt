@@ -4,15 +4,16 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Base64
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
@@ -32,11 +33,8 @@ import com.google.android.gms.tasks.OnCompleteListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
 class FormInspectionActivity : ComponentActivity() {
 
@@ -51,6 +49,35 @@ class FormInspectionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_form_inspection)
+
+        // Initialize the Spinner
+        val roadSurfaceTypeSpinner = findViewById<Spinner>(R.id.roadSurfaceTypeSpinner)
+        val roadSurfaceClassSpinner = findViewById<Spinner>(R.id.roadSurfaceClassSpinner)
+
+        // List of road surface types
+        val roadSurfaceTypes = listOf(
+            "National Road",
+            "Provincial Road",
+            "Regency Road",
+            "City Road",
+            "Village Road"
+        )
+
+        val roadSurfaceClasses = listOf(
+            "Class I Road",
+            "Class II Road",
+            "Class III Road",
+            "Special Road"
+        )
+
+        // Set up the ArrayAdapter for the Spinner
+        val adapterTypes = ArrayAdapter(this, android.R.layout.simple_spinner_item, roadSurfaceTypes)
+        adapterTypes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        roadSurfaceTypeSpinner.adapter = adapterTypes
+
+        val adapterClasses = ArrayAdapter(this, android.R.layout.simple_spinner_item, roadSurfaceClasses)
+        adapterClasses.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        roadSurfaceClassSpinner.adapter = adapterClasses
 
         // Initialize the FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -89,7 +116,10 @@ class FormInspectionActivity : ComponentActivity() {
         val roadName = findViewById<EditText>(R.id.roadNameEditText).text.toString()
         val roadLength = findViewById<EditText>(R.id.roadLengthEditText).text.toString()
         val roadSectionWidth = findViewById<EditText>(R.id.roadSectionWidthEditText).text.toString()
-        val roadSurfaceType = findViewById<EditText>(R.id.roadSurfaceTypeEditText).text.toString()
+        val roadSurfaceType = findViewById<Spinner>(R.id.roadSurfaceTypeSpinner).selectedItem.toString()
+        val roadSurfaceClass = findViewById<Spinner>(R.id.roadSurfaceClassSpinner).selectedItem.toString()
+        val roadSurfaceAddress = findViewById<EditText>(R.id.roadAddressEditText).text.toString()
+        val additionalInformation = findViewById<EditText>(R.id.additionalInformationEditText).text.toString()
 
         val inspectionData = InspectionRequest(
             name_of_officer = inspectorName,
@@ -97,6 +127,9 @@ class FormInspectionActivity : ComponentActivity() {
             length_of_road = roadLength,
             width_of_road = roadSectionWidth,
             type_of_road_surface = roadSurfaceType,
+            road_class = roadSurfaceClass,
+            address = roadSurfaceAddress,
+            additional = additionalInformation,
             location_start = locationStart
         )
 
@@ -136,27 +169,6 @@ class FormInspectionActivity : ComponentActivity() {
             // Request location permission if not granted
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_REQUEST_CODE)
         }
-    }
-
-    private fun getStaticMapUrl(lat: String, lng: String): String {
-        val apiKey = "AIzaSyB720rKZAHxV5FHVp8PodVeAlERLNM_0k4"
-        return "https://maps.googleapis.com/maps/api/staticmap?center=$lat,$lng&zoom=16&size=600x300&maptype=roadmap&markers=color:red%7C$lat,$lng&key=$apiKey"
-    }
-
-    private fun fetchMapImage(url: String, callback: (Bitmap?) -> Unit) {
-        Thread {
-            try {
-                val connection = URL(url).openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connect()
-                val inputStream = connection.inputStream
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                callback(bitmap)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                callback(null)
-            }
-        }.start()
     }
 
     private fun showImagePickerOptions() {
@@ -201,11 +213,7 @@ class FormInspectionActivity : ComponentActivity() {
                     uploadImageToBackend(damageRequest) { damage ->
                         if (damage != null) {
                             damageResponse = damage
-                            val locationParts = inspectionResponse.location_start.split(",")
-                            val mapUrl = getStaticMapUrl(locationParts[0], locationParts[1])
-                            fetchMapImage(mapUrl) { mapImage ->
-                                goToReportPage(mapImage)
-                            }
+                            goToReportPage()
                         }
                     }
                 }
@@ -224,11 +232,7 @@ class FormInspectionActivity : ComponentActivity() {
                         uploadImageToBackend(damageRequest) { damage ->
                             if (damage != null) {
                                 damageResponse = damage
-                                val locationParts = inspectionResponse.location_start.split(",")
-                                val mapUrl = getStaticMapUrl(locationParts[0], locationParts[1])
-                                fetchMapImage(mapUrl) { mapImage ->
-                                    goToReportPage(mapImage)
-                                }
+                                goToReportPage()
                             }
                         }
                     }
@@ -248,24 +252,53 @@ class FormInspectionActivity : ComponentActivity() {
     // Function to upload Base64 encoded image to backend
     private fun uploadImageToBackend(damageRequest: DamageRequest, callback: (Damage?) -> Unit) {
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    val response = ApiClient.damageService.upload(damageRequest)
-                    withContext(Dispatchers.Main) {
-                        callback(response)
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()  // Print stack trace for debugging
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@FormInspectionActivity, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
-                        callback(null)
+            withTimeout(15_000) { // 15-second timeout
+                withContext(Dispatchers.IO) {
+                    try {
+                        val response = ApiClient.damageService.upload(damageRequest)
+                        withContext(Dispatchers.Main) {
+                            damageResponse = response
+                            callback(response)
+                            showPopupMessage(success = true)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()  // Print stack trace for debugging
+                        withContext(Dispatchers.Main) {
+                            showPopupMessage(success = false)
+                            callback(null)
+                        }
                     }
                 }
             }
         }
     }
 
-    private fun goToReportPage(mapImage: Bitmap?) {
+    private fun showPopupMessage(success: Boolean) {
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Upload Status")
+
+        builder.setMessage("Thank you for uploading.")
+
+        if (success) {
+            builder.setPositiveButton("OK") { _, _ ->
+                goToReportPage() // Navigate to report page on success
+            }
+        } else {
+            builder.setPositiveButton("OK") { _, _ ->
+                goToHomePage() // Navigate to home page on failure
+            }
+        }
+
+        val dialog = builder.create()
+        dialog.show()
+    }
+
+    private fun goToHomePage() {
+        val intent = Intent(this, AboutRoadActivity::class.java) // Home page
+        startActivity(intent)
+    }
+
+    private fun goToReportPage() {
         if (!::damageResponse.isInitialized) {
             Toast.makeText(this, "Failed to upload image. Please try again.", Toast.LENGTH_SHORT).show()
             return
@@ -274,15 +307,15 @@ class FormInspectionActivity : ComponentActivity() {
         val intent = Intent(this, ReportPageActivity::class.java)
 
         // Pass the image data as an extra. You need to handle this appropriately in the ReportActivity
-        if (mapImage != null) {
-            intent.putExtra("map_image_uri", saveBitmapToFile(mapImage).toString())
-        }
-
         intent.putExtra("report_id", inspectionResponse.id)
         intent.putExtra("report_name", inspectionResponse.name_of_road)
         intent.putExtra("report_length", inspectionResponse.length_of_road)
         intent.putExtra("report_lat_lon", inspectionResponse.location_start)
-        intent.putExtra("report_surface_type", inspectionResponse.type_of_road_surface)
+        intent.putExtra("report_road_type", inspectionResponse.type_of_road_surface)
+        intent.putExtra("report_road_class", inspectionResponse.road_class)
+        intent.putExtra("report_road_address", inspectionResponse.address)
+        intent.putExtra("report_road_additional", inspectionResponse.additional)
+        intent.putExtra("report_road_inspection_date", inspectionResponse.date_started)
         intent.putExtra("report_image_url", damageResponse.image_url)
         intent.putExtra("alligator_cracking", damageResponse.count_damages_type_0)
         intent.putExtra("lateral_cracking", damageResponse.count_damages_type_1)
@@ -291,19 +324,5 @@ class FormInspectionActivity : ComponentActivity() {
         intent.putExtra("count_damages", damageResponse.count_damages)
 
         startActivity(intent)
-    }
-
-    private fun saveBitmapToFile(bitmap: Bitmap): Uri? {
-        return try {
-            val file = File(applicationContext.cacheDir, "map.jpg")
-            val outputStream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-            outputStream.flush()
-            outputStream.close()
-            Uri.fromFile(file)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
     }
 }

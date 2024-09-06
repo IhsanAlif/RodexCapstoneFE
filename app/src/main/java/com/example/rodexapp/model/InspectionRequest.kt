@@ -7,4 +7,7 @@ data class InspectionRequest(
     val width_of_road: String,
     val location_start: String,
     val type_of_road_surface: String,
+    val road_class: String,
+    val address: String,
+    val additional: String
 )

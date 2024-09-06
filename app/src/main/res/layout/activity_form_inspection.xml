@@ -85,11 +85,38 @@
                 android:gravity="center"
                 android:background="@drawable/form_field" />
 
-            <EditText
-                android:id="@+id/roadSurfaceTypeEditText"
+            <Spinner
+                android:id="@+id/roadSurfaceTypeSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Road Surface Type"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/form_field"
+                android:textAlignment="center"
+                android:gravity="center" />
+
+            <Spinner
+                android:id="@+id/roadSurfaceClassSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/form_field"
+                android:textAlignment="center"
+                android:gravity="center" />
+
+            <EditText
+                android:id="@+id/roadAddressEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Road Address"
+                android:layout_marginBottom="16dp"
+                android:gravity="center"
+                android:background="@drawable/form_field" />
+
+            <EditText
+                android:id="@+id/additionalInformationEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Additional Information"
                 android:layout_marginBottom="16dp"
                 android:gravity="center"
                 android:background="@drawable/form_field" />
